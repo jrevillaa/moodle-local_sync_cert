@@ -20,6 +20,7 @@ function local_sync_cert_get_errors(){
         $user = $DB->get_record('user', array('id' => $data->user_id));
         foreach ($msg as $item) {
             $output[] = [
+                'send_id' => $data->id,
                 'course' => $course->fullname,
                 'user' => $user->username,
                 'field' => $item->field,
