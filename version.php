@@ -13,7 +13,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /** @var object $plugin */
-$plugin->version  = 20210201;   // The (date) version of this module + 2 extra digital for daily versions
+$plugin->version  = 2025100300;   // The (date) version of this module + 2 extra digital for daily versions
 // This version number is displayed into /admin/forms.php
 // TODO: if ever this plugin get branched, the old branch number
 // will not be updated to the current date but just incremented. We will
@@ -23,5 +23,5 @@ $plugin->requires = 2010112400;  // Requires this Moodle version - at least 2.0
 /** @var object $plugin */
 $plugin->component = 'local_sync_cert';
 //$plugin->cron     = 0;
-$plugin->release = '1.0 (Build: 2021011301)';
+$plugin->release = '1.1 (Build: 2025100300)';
 $plugin->maturity = MATURITY_STABLE;

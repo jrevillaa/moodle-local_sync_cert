@@ -15,10 +15,27 @@ function local_sync_cert_get_errors(){
                                             AND status = 0 
                                             ORDER BY timecreated 
                                             DESC LIMIT 1');
-        $msg = json_decode($issues->response)->errors[0]->errors;
-        $course = get_course($data->course_id);
+	//var_dump(json_decode($issues->response)->errors);
+        $msg = json_decode($issues->response)->errors;
+//echo "<pre>";
+//var_dump($msg);
+//echo "</pre>";        
+$course = get_course($data->course_id);
         $user = $DB->get_record('user', array('id' => $data->user_id));
         foreach ($msg as $item) {
+	if(!isset($item->field)){
+		foreach($item->errors as $tmp){
+			$output[] = [
+                'send_id' => $data->id,
+                'course' => $course->fullname,
+                'user' => $user->username,
+                'field' => $tmp->field,
+                'message' => $tmp->message,
+                'error_code' => $tmp->error_code,
+                'time' => date('d/m/Y h:i',$data->timecreated)
+            	];
+		}
+	}else{
             $output[] = [
                 'send_id' => $data->id,
                 'course' => $course->fullname,
@@ -26,8 +43,8 @@ function local_sync_cert_get_errors(){
                 'field' => $item->field,
                 'message' => $item->message,
                 'error_code' => $item->error_code,
-                'time' => date('d/m/Y h:i',$issues->timecreated)
-            ];
+                'time' => date('d/m/Y h:i',$data->timecreated)
+            ];}
         }
     }
     return $output;
@@ -35,7 +52,7 @@ function local_sync_cert_get_errors(){
 function local_sync_cert_cron(){
     global $CFG,$DB;
 
-    $fails = $DB->get_records('local_sync_cert_send', array('status' => 0));
+    $fails = $DB->get_records_sql('SELECT * FROM {local_sync_cert_send} WHERE status = 0');
     mtrace(count($fails));
     $data = [];
     foreach($fails as $fail){
@@ -56,10 +73,11 @@ function local_sync_cert_cron(){
             date('Y-m-d',$fail->timecreated),
             date('Y-m-d',strtotime('+' . $date_to . ' days',$fail->timecreated)),
             $obs);
-        mtrace(json_encode($data));
+        //mtrace(json_encode($data));
     }
-
+	mtrace(json_encode($data));
     $response = local_sync_cert_send_data($data);
+//var_dump($response);die();
     foreach ($response->response->errors as $item) {
         $status = 0;
         local_sync_response_update($item->employee_identifier,$item->document_cod,$status,$item);
@@ -76,17 +94,43 @@ function local_sync_cert_cron(){
 
 }
 
+function date_to_unix($date) {
+    // Validar que la fecha coincida con el formato Y-m-d
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+        //return false;
+    }
+    
+    // Convertir a timestamp usando strtotime
+    $timestamp = strtotime($date);
+    
+    // Verificar que la conversión fue exitosa
+    if ($timestamp === false) {
+        return false;
+    }
+    
+    return $timestamp;
+}
+
 function local_sync_response_update($employee_identifier,$document_doc,$status,$response){
     global $DB;
     $user = $DB->get_record('user', ['username' => $employee_identifier]);
-    $course = $DB->get_record_sql("
-        SELECT cf.shortname,cd.value,cd.instanceid FROM {customfield_field} cf
+    $course = $DB->get_records_sql("
+        SELECT cd.id,cf.shortname,cd.value,cd.instanceid FROM {customfield_field} cf
         INNER JOIN {customfield_data} cd ON cd.fieldid = cf.id
-        WHERE cf.shortname = 'doc_code' AND cd.value = '" . $document_doc . "'");
+        WHERE cf.shortname = 'doc_code' AND cd.value = '" . $document_doc . "' ");
+   $tmp_courses = 0;
+//var_dump(json_decode($response));die();   
+foreach($course as $k => $c){
+	$tmp = $DB->get_record('local_sync_cert_send',['course_id' => $c->instanceid,'user_id' => $user->id, 'status' => 0]);
+	if($tmp && date('Y-m-d',$tmp->timecreated) == $response->date_from){
+		var_dump(date_to_unix($response->date_from),$response);
+		$tmp_courses = $c->instanceid;
+	}
+    }
+    //var_dump($tmp_courses);die();
+    $fail = $DB->get_record('local_sync_cert_send', ['course_id' => $tmp_courses,'user_id' => $user->id]);
 
-    $fail = $DB->get_record('local_sync_cert_send', ['course_id' => $course->instanceid,'user_id' => $user->id]);
-
-    local_sync_cert_update($fail->id,1,$course->instanceid,$user->id,$status);
+    local_sync_cert_update($fail->id,1,$fail->course_id,$user->id,$status);
     local_sync_cert_insert_log($fail->id,$status,json_encode($response));
 }
 
@@ -136,7 +180,7 @@ function local_sync_cert_get_contractor($courseid){
 }
 
 function local_sync_cert_send_data($data){
-    $curl = curl_init();
+    /*$curl = curl_init();
 
     curl_setopt_array($curl, array(
         CURLOPT_URL => get_config('local_sync_cert', 'url_endpiont'),
@@ -152,7 +196,57 @@ function local_sync_cert_send_data($data){
 
     $response = curl_exec($curl);
     curl_close($curl);
-    return json_decode($response);
+	mtrace(json_decode($response));
+
+    return json_decode($response);*/
+$curl = curl_init();
+
+// Configurar archivo temporal para capturar salida verbose
+$verbose = fopen('php://temp', 'w+');
+
+curl_setopt_array($curl, array(
+    CURLOPT_URL => get_config('local_sync_cert', 'url_endpiont'),
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => '',
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 0,
+    CURLOPT_FOLLOWLOCATION => true,
+    CURLOPT_USERPWD => get_config('local_sync_cert', 'username') . ':' . get_config('local_sync_cert', 'password'),
+    CURLOPT_POSTFIELDS => json_encode($data),
+    CURLOPT_CUSTOMREQUEST => 'POST',
+    CURLOPT_HTTPHEADER => array('Content-Type: application/json'),
+    // Opciones de debug
+    CURLOPT_VERBOSE => true,
+    CURLOPT_STDERR => $verbose,
+));
+
+$response = curl_exec($curl);
+//var_dump($response);die();
+// Capturar información de debug
+if ($response === false) {
+    mtrace('cURL Error: ' . curl_error($curl));
+    mtrace('cURL Error Number: ' . curl_errno($curl));
+}
+
+// Obtener información detallada de la petición
+$info = curl_getinfo($curl);
+mtrace('HTTP Code: ' . $info['http_code']);
+mtrace('Total Time: ' . $info['total_time'] . ' seconds');
+mtrace('Content Type: ' . $info['content_type']);
+
+// Capturar el log verbose
+rewind($verbose);
+$verboseLog = stream_get_contents($verbose);
+mtrace('Verbose Debug Log:');
+mtrace($verboseLog);
+
+curl_close($curl);
+fclose($verbose);
+
+mtrace('Response: ' . $response);
+//mtrace($response);
+
+return json_decode($response);
 }
 
 function local_sync_cert_insert_log($id,$status,$response){
@@ -226,3 +320,4 @@ function local_sync_cert_get_customfield($name,$courseid){
         INNER JOIN {customfield_data} cd ON cd.fieldid = cf.id
         WHERE cf.shortname = '" . $name . "' AND cd.instanceid = " . $courseid);
 }
+
