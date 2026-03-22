@@ -40,6 +40,14 @@ defined('MOODLE_INTERNAL') || die();
 
     $ADMIN->add('local_sync_cert_api', $settings);
 
+    // Add external page for API logs
+    $ADMIN->add('local_sync_cert_api', new admin_externalpage(
+        'local_sync_cert_logs',
+        get_string('api_logs', 'local_sync_cert'),
+        new moodle_url('/local/sync_cert/api_logs.php'),
+        'moodle/site:config'
+    ));
+
     $ADMIN->add('local_sync_cert_api',new admin_externalpage('local_sync_cert_report', 'Reporte de envíos fallidos',
         "$CFG->wwwroot/local/sync_cert/index.php"));
 

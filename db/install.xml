@@ -31,5 +31,20 @@
                 <KEY NAME="primary" TYPE="primary" FIELDS="id" COMMENT="The unique id for this local_sync_cert instance."/>
             </KEYS>
         </TABLE>
+        <TABLE NAME="local_sync_cert_api_calls" COMMENT="Resumen de llamadas al API externo">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="total_processed" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0" COMMENT="Total de registros procesados"/>
+                <FIELD NAME="success_count" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0" COMMENT="Cantidad con status 1"/>
+                <FIELD NAME="error_count" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0" COMMENT="Cantidad con status 0"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="timecreated_idx" UNIQUE="false" FIELDS="timecreated"/>
+            </INDEXES>
+        </TABLE>
     </TABLES>
 </XMLDB>

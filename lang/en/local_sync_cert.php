@@ -24,3 +24,16 @@
 
 $string['pluginname'] = 'Sync Cert';
 $string['resend_fails_certs_cron'] = 'Reenviar datos de certificados fallidos';
+
+$string['api_logs'] = 'Logs de llamadas API';
+$string['api_log_detail'] = 'Detalle de llamada API';
+$string['total'] = 'Total procesados';
+$string['success'] = 'Exitosos';
+$string['errors'] = 'Errores';
+$string['error'] = 'Error';
+$string['from'] = 'Desde';
+$string['to'] = 'Hasta';
+$string['call_summary'] = 'Resumen de la llamada';
+$string['detailed_records'] = 'Registros detallados';
+$string['filter_by_status'] = 'Filtrar por estado';
+$string['no_records'] = 'No hay registros para mostrar';
